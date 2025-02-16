@@ -13,29 +13,21 @@ import { TwoFactorAuth } from "@/components/two-factor-auth"
 import { DisputeResolution } from "@/components/dispute-resolution"
 import { RatingReview } from "@/components/rating-review"
 
+'use client'
+import { useSession } from 'next-auth/react'
+
 export default function Home() {
+  const { data: session } = useSession()
+  
   return (
-    <div className="flex flex-col gap-16">
-      <HeroSection />
-      <CategoryNav />
-      <PopularServices />
-      <LocalServicesMarketplace />
-      <RecentJobs />
-      <PaymentInfo />
-      <VerificationInfo />
-      <AutomatedVerification />
-      <SecurePayment
-        amount={1000}
-        currency="ZAR"
-        onSuccess={() => console.log("Payment successful")}
-        onError={(error) => console.error(error)}
-      />
-      <TwoFactorAuth />
-      <DisputeResolution />
-      <RatingReview />
-      <FeaturedFreelancers />
-      <HowItWorks />
-    </div>
+    <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <h1>Welcome to Spaan</h1>
+      {session ? (
+        <div>Logged in as {session.user?.name}</div>
+      ) : (
+        <div>Please sign in</div>
+      )}
+    </main>
   )
 }
 

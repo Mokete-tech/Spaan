@@ -1,64 +1,63 @@
-import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import { PrismaClient } from "@prisma/client"
-import CredentialsProvider from "next-auth/providers/credentials"
-import bcrypt from "bcrypt"
-
-const prisma = new PrismaClient()
+import NextAuth from 'next-auth'
+import GithubProvider from 'next-auth/providers/github'
 
 export const authOptions = {
-  adapter: PrismaAdapter(prisma),
   providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "text", placeholder: "jsmith@example.com" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email,
-          },
-        })
-        if (!user) {
-          return null
-        }
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
-        if (!isPasswordValid) {
-          return null
-        }
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        }
-      },
+    GithubProvider({
+      clientId: process.env.GITHUB_ID,
+      clientSecret: process.env.GITHUB_SECRET,
     }),
   ],
-  session: {
-    strategy: "jwt",
-  },
   pages: {
-    signIn: "/auth/signin",
+    signIn: '/auth/signin',
+    error: '/auth/error'
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id
+    session: async ({ session, token }) => {
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.sub
+        }
       }
-      return token
-    },
-    async session({ session, token }) {
-      if (session?.user) {
-        session.user.id = token.id as string
-      }
-      return session
-    },
-  },
+    }
+  }
+}const handler = NextAuth(authOptions)
+  .catch(error => {
+    console.error('Auth error:', error)
+    throw error
+  })export { handler as GET, handler as POST }
+
+{
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch Program",
+      "program": "${workspaceFolder}/${input:programPath}",
+      "preLaunchTask": "npm: build"
+    }
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "programPath",
+      "description": "Path to the program file (e.g., app/page.tsx)"
+    }
+  ],
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "build",
+      "group": "build",
+      "problemMatcher": [],
+      "label": "npm: build"
+    }
+  ]
 }
 
-export default authOptions
-
+if (!process.env.GITHUB_ID || !process.env.GITHUB_SECRET) {
+  throw new Error('Missing GitHub OAuth credentials')
+}
